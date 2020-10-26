@@ -10,28 +10,34 @@ Spring Boot에서 Readiness Probe와 Liveness Probe 설정과 같은 부분을 �
 
 사용 방법  
 1. Configmap 세팅
-   - fluentd-host: WAS에서 바로 FluentD로 was로그를 쏠 수 있도록 세팅되어 있습니다. Docs에 있는 24224 포트를 사용합니다.
+   - fluentd-host: WAS에서 바로 FluentD로 was로그를 쏠 수 있도록 세팅되어 있습니다.  
+     Docs에 있는 24224 포트를 사용합니다.
   
 2. Deployment.yaml / application.yaml
    - LivenessProbe / ReadinessProbe의 주기적인 체크 시간(periodSeconds) / 실패 횟수(failureThreshold) 등을 조절하여  
-     알맞게 Pod LifeCycle을 조절할 수 있습니다. API이기 때문에 아무곳에서나 콜이 되면 안되므로, 해더에 x-k8s-key라는 값을 통해 조작 가능하게 하였습니다.
+     알맞게 Pod LifeCycle을 조절할 수 있습니다.  
+     API이기 때문에 아무곳에서나 콜이 되면 안되므로, 해더에 x-k8s-key라는 값을 통해 조작 가능하게 하였습니다.  
    - application.yaml에서 lifecylce.timeout-per-shutdown-phase에서 WAS를 강제 종료시키는 timeout 시간을 정할 수 있습니다.
    - bo_dns를 core_dns로 설정해놓았습니다. 로컬이거나 namespace 다른 구조로 세팅하셨다면, 바꿔주시면됩니다.
 
 3. skaffold.yaml / pom.xml
    - {{dev-account-ecr-url}} / {{stg-account-ecr-url}} / {{prd-account-ecr-url}}  
      위의 값에 각 ECR의 URL을 입력해주시면 됩니다. Tag는 넣지 않고 빌드 시 아래 예처럼 넣어주시면 됩니다.  
+       
      -- Tag 빌드 예시 --  
      sh "VER=${TAG} skaffold build -p ${CONFIG_ENV} --cache-artifacts=false" 와 같이 넣으면 됩니다.
 
    - Docker Base Image는 pom.xml의 profile란에 입력합니다.  
-     digest 값이 아니면 jib library에서 정확하게 가져오지 못하므로 CICD 구성시 digest를 항상 최신값을 가져올 수 있도록 아래 예 처럼 구성해야합니다.  
+     digest 값이 아니면 jib library에서 정확하게 가져오지 못하므로 CICD 구성시  
+     digest를 항상 최신값을 가져올 수 있도록 아래 예 처럼 구성해야합니다.  
+       
      -- Jenkins Pipeline Script 예시 --  
      def cmd = "aws ecr list-images --repository-name ${base-ecr-img-name} --output text --query \"imageIds[?imageTag=='latest'].imageDigest\""  
      def digest =  sh(returnStdout: true, script: cmd).trim()  
      sh("sed -i 's!<digest>.*!<digest>${digest}</digest>!g' /var/lib/jenkins/workspace/${JOB_NAME}/pom.xml")
 
-   - pom.xml 가장 하단에 base image 세팅을 직접 하실 경우 주석을 푸시고 camouflage/base:0.1 부분을 삭제해주시면 됩니다.
+   - pom.xml 가장 하단에 base image 세팅을 직접 하실 경우 주석을 푸시고  
+     camouflage/base:0.1 부분을 삭제해주시면 됩니다.  
 
 4. 소스코드 수정 하여 좀 더 커스터마이징 하고 싶으실 경우,
    mvn build를 아래와 같이 하셔서 yaml 세팅과 맞게 빌드하신 후 사용하시면 됩니다.  
