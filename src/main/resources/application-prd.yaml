@@ -1,0 +1,2 @@
+bo:
+  url: ${BO_CORE_DNS}

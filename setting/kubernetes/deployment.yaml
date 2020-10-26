@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: phh-fo
+  namespace: phh-fo
+spec:
+  selector:
+    matchLabels:
+      app: phh-fo
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: phh-fo
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: nodegroup-type
+                operator: In
+                values:
+                - BACKEND
+      terminationGracePeriodSeconds: 30
+      containers:
+      - image: camouflage129/phh-fo:prd
+        imagePullPolicy: Always
+        name: phh-fo
+        ports:
+        - containerPort: 9090
+        # command: ["/bin/sh", "-c", "sleep 1000"]
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - sh
+              - -c
+              - curl -H "x-k8s-key:phh-fo" --silent http://localhost:9090/change/readiness/refuse
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - curl -H "x-k8s-key:phh-fo" --silent http://localhost:9090/sys/healthz/liveness | grep -q '^{\"status\"\:\"UP\".*}$'
+            - echo $?
+          initialDelaySeconds: 30
+          periodSeconds: 60
+          failureThreshold: 3
+          timeoutSeconds: 1
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - curl -H "x-k8s-key:phh-fo" --silent http://localhost:9090/sys/healthz/readiness | grep -q '^{\"status\"\:\"UP\".*}$'
+            - echo $?
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          failureThreshold: 3
+          timeoutSeconds: 1
+        env:
+        - name: FULENTD_HOST
+          valueFrom:
+            configMapKeyRef: 
+              name: spring-info
+              key: fluentd-host
+        - name: LOG_TYPE
+          valueFrom:
+            configMapKeyRef: 
+              name: spring-info
+              key: log-type
+        - name: PROJECT
+          valueFrom:
+            configMapKeyRef: 
+              name: spring-info
+              key: project
+        - name: BO_CORE_DNS
+          valueFrom:
+            configMapKeyRef: 
+              name: spring-info
+              key: bo-core-dns

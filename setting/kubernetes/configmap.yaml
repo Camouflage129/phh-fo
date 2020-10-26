@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spring-info
+  namespace: phh-fo
+data:
+  bo-core-dns: http://phh-bo.phh-bo.svc.cluster.local:9000/bo/
+  fluentd-host: "127.0.0.1"
+  project: phh-fo
+  log-type: waslog
